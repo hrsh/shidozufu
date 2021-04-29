@@ -8,6 +8,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.OpenApi.Models;
+using Shidozufu.EventBus;
+using Shidozufu.Shared;
 
 namespace Shidozufu.OrderService
 {
@@ -20,7 +23,23 @@ namespace Shidozufu.OrderService
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.Configure<DatabaseOptions>(
+                _configuration.GetSection(nameof(DatabaseOptions)),
+                opt => _configuration.Bind(opt));
             services.AddControllers();
+            services.AddSwaggerGen(x =>
+            {
+                x.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "Order Service",
+                    Version = "v1"
+                });
+            });
+            services.AddSingleton<IOrderDetailsProvider, OrderDetailsProvider>();
+            services.AddSingleton<ICreateOrder, CreateOrder>();
+            services.AddSingleton<IDeleteOrder, DeleteOrder>();
+
+            services.UsePlainRabbitMq();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -29,7 +48,12 @@ namespace Shidozufu.OrderService
             {
                 app.UseDeveloperExceptionPage();
             }
-
+            app.UseHttpsRedirection();
+            app.UseSwagger();
+            app.UseSwaggerUI(x =>
+            {
+                x.SwaggerEndpoint("/swagger/v1/swagger.json", "Order Service");
+            });
             app.UseRouting();
 
             app.UseEndpoints(e =>
