@@ -39,7 +39,7 @@ namespace Shidozufu.OrderService
             services.AddSingleton<ICreateOrder, CreateOrder>();
             services.AddSingleton<IDeleteOrder, DeleteOrder>();
 
-            services.UsePlainRabbitMq();
+            //services.UsePlainRabbitMq();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
