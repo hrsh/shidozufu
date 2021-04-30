@@ -42,7 +42,8 @@ namespace Shidozufu.ReportService
 
             app.UseEndpoints(e =>
             {
-                e.MapGet("/", async context => await context.Response.WriteAsync("Shidozufu.ReportService"));
+                e.MapGet("/", async context => 
+                    await context.Response.WriteAsync("Shidozufu.ReportService"));
                 e.MapControllers();
             });
         }

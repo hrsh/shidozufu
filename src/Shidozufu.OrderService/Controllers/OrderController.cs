@@ -1,26 +1,34 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using RabbitMQ.Client;
+using Shidozufu.EventBus;
 using Shidozufu.Shared;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Shidozufu.OrderService.Controllers
 {
     [ApiController, Route("api/v1/[controller]")]
-    public class HomeController : ControllerBase
+    public class OrderController : ControllerBase
     {
         private readonly IOrderDetailsProvider _orderDetailsProvider;
         private readonly ICreateOrder _createOrder;
         private readonly IDeleteOrder _deleteOrder;
+        private readonly IPublisher _publisher;
 
-        public HomeController(
+        private const string ROUTING_KEY = "report.order";
+
+        public OrderController(
             IOrderDetailsProvider orderDetailsProvider,
             ICreateOrder createOrder,
-            IDeleteOrder deleteOrder)
+            IDeleteOrder deleteOrder,
+            IPublisher publisher)
         {
             _orderDetailsProvider = orderDetailsProvider;
             _createOrder = createOrder;
             _deleteOrder = deleteOrder;
+            _publisher = publisher;
         }
 
         [HttpGet]
@@ -36,7 +44,19 @@ namespace Shidozufu.OrderService.Controllers
             CancellationToken ct)
         {
             var id = await _createOrder.CreateAsync(orderDetail, ct);
-            //publish
+
+            _publisher.Publish(
+                message: JsonConvert.SerializeObject(
+                    orderDetail, 
+                    Formatting.None, 
+                    new JsonSerializerSettings
+                    {
+                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                    }),
+                routingKey: ROUTING_KEY,
+                messageAttributes: null,
+                exchangeType: ExchangeType.Topic);
+
             return Ok(id);
         }
 
